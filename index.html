@@ -5,182 +5,18 @@
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
-
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
 	<link rel="stylesheet" href="lib/Control.FullScreen.css" />
-	
 	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 	<script src="lib/Control.FullScreen.js"></script>
-	
-
-	<style>
-	html, body {
-	height: 100%;
-	margin: 0;
-	}
-	.leaflet-container {
-	height: 400px;
-	width: 600px;
-	max-width: 100%;
-	max-height: 100%;
-	}
-	</style>
-
-	<style>#map { width: 100vw; height: 100vh; }
-	.info { padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; } .info h4 { margin: 0 0 5px; color: #777; }
-	.legend { text-align: left; line-height: 18px; color: #555; } .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }</style>
+	<link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
+	<div id='map'></div>
 
-<div id='map'></div>
+	<!-- Tunisie data -->
+	<script src="popjs.js"></script>
 
-	
-<script type="text/javascript" src="us-states.js"></script>
-
-<!-- Tunisie data -->
-<script src="popjs.js"></script>
-
-<script type="text/javascript">
-
-var map = L.map('map').setView([33.8869, 9.5375], 6);
-
-var tiles = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
-maxZoom: 18,
-attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
-'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-id: 'mapbox/light-v9',
-tileSize: 512,
-zoomOffset: -1
-}).addTo(map);
-
-
-
-// fullscreen control
-		var fsControl = L.control.fullscreen();
-		// add fullscreen control to the map
-		map.addControl(fsControl);
-
-		// detect fullscreen toggling
-		map.on('enterFullscreen', function(){
-			if(window.console) window.console.log('enterFullscreen');
-		});
-		map.on('exitFullscreen', function(){
-			if(window.console) window.console.log('exitFullscreen');
-		});
-
-
-// Tunisie:
-	var info = L.control();
-
-	info.onAdd = function (map) {
-	this._div = L.DomUtil.create('div', 'info');
-	this.update();
-	return this._div;
-	};
-
-	info.update = function (props) {
-	this._div.innerHTML = '<h4>Tunisia Population Density</h4>' + (props ?
-	'<b>' + props.gouvernora + '</b><br />' + props.Density + ' people / km<sup>2</sup>' : 'Hover over a governorate');
-	};
-
-	info.addTo(map);
-
-
-// get color depending on population density value
-function getColor(d) {
-return d > 4000 ? '#800026' :
-		d > 2000 ? '#BD0026' :
-		d > 1000 ? '#E31A1C' :
-		d > 500 ? '#FC4E2A' :
-		d > 100 ? '#FD8D3C' :
-		d > 50 ? '#FEB24C' :
-		d > 10 ? '#FED976' : '#FFEDA0';
-		}
-
-function style(feature) {
-	return {
-	weight: 2,
-	opacity: 1,
-	color: 'white',
-	dashArray: '3',
-	fillOpacity: 0.7,
-	fillColor: getColor(feature.properties.Density)
-	};
-	}
-
-function highlightFeature(e) {
-var layer = e.target;
-
-layer.setStyle({
-weight: 5,
-color: '#666',
-dashArray: '',
-fillOpacity: 0.7
-});
-
-if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-layer.bringToFront();
-}
-
-info.update(layer.feature.properties);
-}
-
-var geojson;
-
-function resetHighlight(e) {
-geojson.resetStyle(e.target);
-info.update();
-}
-
-function zoomToFeature(e) {
-map.fitBounds(e.target.getBounds());
-}
-
-function onEachFeature(feature, layer) {
-layer.on({
-mouseover: highlightFeature,
-mouseout: resetHighlight,
-click: zoomToFeature
-});
-}
-
-/* global statesData */
-geojson = L.geoJson(popDATA, {
-style: style,
-onEachFeature: onEachFeature
-}).addTo(map);
-
-map.attributionControl.addAttribution('Population data &copy; <a href="http://www.ins.tn/">INS</a>');
-
-
-
-var legend = L.control({position: 'bottomright'});
-
-legend.onAdd = function (map) {
-
-var div = L.DomUtil.create('div', 'info legend');
-var grades = [50, 100, 500, 1000, 2000, 4000];
-var labels = [];
-var from, to;
-
-for (var i = 0; i < grades.length; i++) {
-from = grades[i];
-to = grades[i + 1];
-
-labels.push(
-'<i style="background:' + getColor(from + 1) + '"></i> ' +
-from + (to ? '&ndash;' + to : '+'));
-}
-
-div.innerHTML = labels.join('<br>');
-return div;
-};
-
-legend.addTo(map);
-
-</script>
-
-
-
+	<script type="text/javascript" src="script.js"></script>
 </body>
 </html>
